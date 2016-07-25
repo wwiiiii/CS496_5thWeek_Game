@@ -1,5 +1,5 @@
 #include "MainScene.h"
-#include "SimpleAudioEngine.h"
+#include "GameScene.h"
 
 USING_NS_CC;
 
@@ -105,7 +105,7 @@ bool MainScene::onTouchBegan(Touch *touch, Event *unused_event)
 	if (rect.containsPoint(loc))//touched GAME PLAY
 	{
 	
-	
+		Director::getInstance()->pushScene(GameScene::createScene());
 		return false;
 	}
 	

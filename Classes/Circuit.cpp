@@ -108,9 +108,20 @@ void CircuitEdge::updateColor()
 	auto actionRed = TintTo::create(0.1, 255, 0, 0);
 	auto actionGreen = TintTo::create(0.1, 0, 255, 0);
 	if (this->isTrue == true) {
-		this->spr->runAction(actionGreen);
+		//this->spr->runAction(actionGreen);
+		this->spr->setColor(Color3B::GREEN);
+		this->spr->clear();
+		Vec2 origin = Vec2(this->inputNode->pos.x, this->inputNode->pos.y);
+		Vec2 dest = Vec2(this->outputNode->pos.x, this->outputNode->pos.y);
+		this->spr->drawLine(origin, dest, Color4F::GREEN);
 	}
 	else if (this->isTrue == false) {
-		this->spr->runAction(actionRed);
+		//this->spr->runAction(actionRed);
+		this->spr->setColor(Color3B::RED);
+		this->spr->clear();
+		Vec2 origin = Vec2(this->inputNode->pos.x, this->inputNode->pos.y);
+		Vec2 dest = Vec2(this->outputNode->pos.x, this->outputNode->pos.y);
+		this->spr->drawLine(origin, dest, Color4F::RED);
 	}
 }
+
