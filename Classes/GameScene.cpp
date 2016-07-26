@@ -1,10 +1,9 @@
 #include "GameScene.h"
 #include "Circuit.h"
 #include <vector>
+#define COCOS2D_DEBUG 1
 USING_NS_CC;
 
-
-vector<CircuitNode*> startNodes;
 Scene* GameScene::createScene()
 {
     // 'scene' is an autorelease object
@@ -30,7 +29,9 @@ bool GameScene::init()
         return false;
     }
 	winSize = Director::getInstance()->getWinSize();
-	
+	startNodes.clear();
+	bglayer = Layer::create(); this->addChild(bglayer);
+
 	auto a1 = new CircuitNode(NODE_START, true, { 100, (long)(winSize.height - 100) });
 	auto a2 = new CircuitNode(NODE_START, false, { 100, (long)(winSize.height - 400) });
 	auto a6 = new CircuitNode(NODE_START, false, { 200, (long)(winSize.height - 200) });
@@ -44,28 +45,34 @@ bool GameScene::init()
 	auto e3 = new CircuitEdge(a6, a4);
 
 	for (int i = 0; i < e1->lines.size(); i++)
-		this->addChild(e1->lines[i].first);
+		bglayer->addChild(e1->lines[i].first);
 	for (int i = 0; i < e2->lines.size(); i++)
-		this->addChild(e2->lines[i].first);
+		bglayer->addChild(e2->lines[i].first);
 	for (int i = 0; i < e3->lines.size(); i++)
-		this->addChild(e3->lines[i].first);
+		bglayer->addChild(e3->lines[i].first);
 	startNodes.push_back(a1);
 	startNodes.push_back(a2);
 	startNodes.push_back(a3);
 	startNodes.push_back(a4);
 	startNodes.push_back(a6);
-
+	/*
+	this->addChild(a1->spr);
+	this->addChild(a2->spr);
+	this->addChild(a3->spr);
+	this->addChild(a4->spr);
+	this->addChild(a6->spr);
+	*/
 	
-	for (auto i : startNodes)
+	for (int i =0;i<startNodes.size(); i++)
 	{
-		//i->spr->setOpacity(128);
-		this->addChild(i->spr);
+		bglayer->addChild(startNodes[i]->spr);
 	}
 
 	auto touchListener = EventListenerTouchOneByOne::create();
 	touchListener->onTouchBegan = CC_CALLBACK_2(GameScene::onTouchBegan, this);
+	touchListener->onTouchMoved = CC_CALLBACK_2(GameScene::onTouchMoved, this);
 	Director::getInstance()->getEventDispatcher()->addEventListenerWithFixedPriority(touchListener, 1);
-
+	log("%s", "A string");
     return true;
 }
 
@@ -73,15 +80,30 @@ bool GameScene::init()
 bool GameScene::onTouchBegan(Touch *touch, Event *unused_event)
 {
 	Point loc = touch->getLocation();
-	for (auto i : startNodes)
+	Point backloc = loc;
+	Rect layerPos = bglayer->getBoundingBox();
+	loc.x -= layerPos.getMinX();
+	for (int i = 0; i < startNodes.size(); i++) 
 	{
-		Rect rect = i->spr->getBoundingBox();
+		Rect rect = startNodes[i]->spr->getBoundingBox();
 		if (rect.containsPoint(loc))
-		{
-			i->isTrue = !i->isTrue;
-			i->updateColor();
+		{	
+			startNodes[i]->isTrue = !(startNodes[i]->isTrue);
+			startNodes[i]->updateColor();
+			log("%f %f %f %f", rect.getMaxX(), rect.getMaxY(), rect.getMinX(), rect.getMinY());
 			return false;
 		}
 	}
-	return false;
+	pastTouch = backloc;
+	return true;
+}
+
+void GameScene::onTouchMoved(Touch *touch, Event *unused_event)
+{
+	float thres = -1.0;
+	Point loc = touch->getLocation();
+	
+	log("%f %f", loc.x, loc.y);
+	bglayer->runAction(MoveBy::create(0.0, Point(loc.x - pastTouch.x, 0.0)));
+	pastTouch = loc;
 }

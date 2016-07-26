@@ -34,7 +34,7 @@ bool MainScene::init()
 	initSettingOption();
 	initCloseOption();
 	
-	auto touchListener = EventListenerTouchOneByOne::create();
+	touchListener = EventListenerTouchOneByOne::create();
 	touchListener->onTouchBegan = CC_CALLBACK_2(MainScene::onTouchBegan, this);
 	/*touchListener->onTouchMoved = CC_CALLBACK_2(MainScene::onTouchMoved, this);
 	touchListener->onTouchEnded = CC_CALLBACK_2(MainScene::onTouchEnded, this);
@@ -104,8 +104,9 @@ bool MainScene::onTouchBegan(Touch *touch, Event *unused_event)
 	Rect rect = sprPlay->getBoundingBox();
 	if (rect.containsPoint(loc))//touched GAME PLAY
 	{
-	
+		Director::getInstance()->getEventDispatcher()->removeAllEventListeners();
 		Director::getInstance()->pushScene(GameScene::createScene());
+
 		return false;
 	}
 	

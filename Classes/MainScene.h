@@ -17,8 +17,11 @@ public:
 
     virtual bool init();
     CREATE_FUNC(MainScene);
-
+	
+	EventListenerTouchOneByOne* touchListener;
 	Size winSize;
+
+
 	void initPlayOption();
 	void initSettingOption();
 	void initCloseOption();

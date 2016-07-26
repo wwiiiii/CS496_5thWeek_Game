@@ -155,7 +155,6 @@ pair<Sprite *, int> lineLinearSpr(POINT a, POINT b, int COLOR)
 		backOk->setPosition((a.x + b.x) / 2.0, (a.y + b.y) / 2.0);
 		if (a.y < b.y) dir = DIR_UP; else dir = DIR_DOWN;
 		return make_pair(backOk, dir);
-		//addChild(backOk);
 	}
 	else if (a.y-b.y < eps && b.y - a.y < eps) //°¡·Î¼±
 	{
