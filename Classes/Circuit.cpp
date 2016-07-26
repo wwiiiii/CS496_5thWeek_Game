@@ -3,11 +3,20 @@
 USING_NS_CC;
 
 
-
-LineSeg::LineSeg(POINT a, POINT b)
+//colorOption이 1이면 W/Y, 0이면 G/R
+LineSeg::LineSeg(POINT a, POINT b, int colorOption)
 {
-	auto res1 = lineLinearSpr(a, b, 0);
-	auto res2 = lineLinearSpr(a, b, 1);//make_pair(Sprite::create("pixel1.png"), 0);
+	pair<Sprite*, int> res1, res2;
+	if (colorOption == 0)
+	{
+		res1 = lineLinearSpr(a, b, 0);
+		res2 = lineLinearSpr(a, b, 1);//make_pair(Sprite::create("pixel1.png"), 0);
+	}
+	else
+	{
+		res1 = lineLinearSpr(a, b, 2);
+		res2 = lineLinearSpr(a, b, 3);//make_pair(Sprite::create("pixel1.png"), 0);
+	}
 	this->trueLine = res1.first;
 	this->falseLine = res2.first;
 	this->dir = res1.second;
@@ -20,6 +29,10 @@ LineSeg::LineSeg(POINT a, POINT b)
 	this->clip->setContentSize(trueLine->getContentSize());
 	this->clip->setStencil(trueLine);
 
+	if (colorOption == 1)
+	{
+		this->falseLine->setOpacity(200);
+	}
 	this->clip->addChild(trueLine, 1);
 	this->clip->addChild(falseLine, 2);
 
@@ -29,7 +42,10 @@ LineSeg::LineSeg(POINT a, POINT b)
 
 CircuitNode::CircuitNode(int type, int isTrue, POINT pos)
 {
-	this->spr = Sprite::create("node_false.png");
+	int nowOpt = UserDefault::getInstance()->getIntegerForKey("colorOption");
+	if(nowOpt == 0)	this->spr = Sprite::create("node_false0.png");
+	else this->spr = Sprite::create("node_false1.png");
+	this->spr->setScale(0.25*0.5);
 	this->isTrue = isTrue; this->type = type; this->pos = pos;
 	this->spr->setPosition((float)pos.x, (float)pos.y);
 	this->nowColor = -1;
@@ -93,28 +109,40 @@ void CircuitNode::updateStatusByInput()
 
 void CircuitNode::updateColor(int nowZ)
 {
+	int nowOpt = UserDefault::getInstance()->getIntegerForKey("colorOption");
 	if (this->nowColor == this->isTrue) return;
 	if (this->isTrue == true) {
-		this->spr->setTexture("node_true.png");
+		if (nowOpt == 0) this->spr->setTexture("node_true0.png");
+		else this->spr->setTexture("node_true1.png");
 		if(nowZ != -1)this->spr->setZOrder(nowZ);
+		this->spr->setScale(0.25*0.5);
 		this->nowColor = this->isTrue;
 	}
 	else if (this->isTrue == false) {
-		this->spr->setTexture("node_false.png");
+		if (nowOpt == 0) this->spr->setTexture("node_false0.png");
+		else this->spr->setTexture("node_false1.png");
 		if (nowZ != -1)this->spr->setZOrder(nowZ);
+		this->spr->setScale(0.25*0.5);
 		this->nowColor = this->isTrue;
 	}
 }
 
-CircuitEdge::CircuitEdge(CircuitNode * from, CircuitNode * to)
+CircuitEdge::CircuitEdge(CircuitNode * from, CircuitNode * to, int colorOption)
 {
+	this->length = 0;
 	this->nowColor = -1;
 	this->setInputNode(from);
 	this->setOutputNode(to);
 	from->setOutputEdge(this);
 	to->addInputEdge(this);
 	this->updateStatusByInput();
-	this->lines = lineSpr(from->pos, to->pos);
+	this->lines = lineSpr(from->pos, to->pos, colorOption);
+	for (int i = 0; i < this->lines.size(); i++)
+	{
+		float h1 = this->lines[i]->trueLine->getContentSize().width;
+		float h2 = this->lines[i]->trueLine->getContentSize().height;
+		if (h1 < h2) this->length += h2; else this->length += h1;
+	}
 	this->updateColor(0);
 }
 
@@ -136,7 +164,7 @@ void CircuitEdge::updateStatusByInput()
 
 void CircuitEdge::updateColor(int nowZ)
 {
-	float dur = 0.5;
+	float dur = 0.3;
 	if (this->nowColor == this->isTrue) return;
 	this->nowColor = this->isTrue;
 	vector<LineSeg *> & lines = this->lines;
@@ -146,35 +174,40 @@ void CircuitEdge::updateColor(int nowZ)
 	auto act2 = Place::create(Point(0, 0));
 	if (this->isTrue == true) {
 		CCLOG("change red to green");
+		float accumDelay = 0.0;
 		for (int i = 0; i < lines.size(); i++)
 		{
 			LineSeg * now = lines[i];
 			now->clip->setZOrder(nowZ++);
 			float height = now->trueLine->getContentSize().height;
 			float width = now->trueLine->getContentSize().width;
-			act0 = DelayTime::create((float)i * dur);
+			act0 = DelayTime::create(accumDelay);
+			float nowDelay = 0.0;
+			if (height < width) nowDelay = dur / this->length * width;
+			else nowDelay = dur / this->length * height;
+			accumDelay += nowDelay;
 			switch (now->dir)
 			{
 			case DIR_DOWN:
-				act1 = MoveBy::create(dur, Point(0, -height));
+				act1 = MoveBy::create(nowDelay, Point(0, -height));
 				act2 = Place::create(Point(0,height));
 				act = Sequence::create(act0, act1, act2, NULL);
 				now->falseLine->runAction(act);
 				break;
 			case DIR_UP:
-				act1 = MoveBy::create(dur, Point(0, height));
+				act1 = MoveBy::create(nowDelay, Point(0, height));
 				act2 = Place::create(Point(0, -height));
 				act = Sequence::create(act0, act1, act2, NULL);
 				now->falseLine->runAction(act);
 				break;
 			case DIR_RIGHT:
-				act1 = MoveBy::create(dur, Point(width, 0));
+				act1 = MoveBy::create(nowDelay, Point(width, 0));
 				act2 = Place::create(Point(-width, 0));
 				act = Sequence::create(act0, act1, act2, NULL);
 				now->falseLine->runAction(act);
 				break;
 			case DIR_LEFT:
-				act1 = MoveBy::create(dur, Point(-width, 0));
+				act1 = MoveBy::create(nowDelay, Point(-width, 0));
 				act2 = Place::create(Point(width, 0));
 				act = Sequence::create(act0, act1, act2, NULL);
 				now->falseLine->runAction(act);
@@ -187,35 +220,40 @@ void CircuitEdge::updateColor(int nowZ)
 	}
 	else if (this->isTrue == false) {
 		CCLOG("change green to red");
+		float accumDelay = 0.0;
 		for (int i = 0; i < lines.size(); i++)
 		{
 			LineSeg * now = lines[i];
 			now->clip->setZOrder(nowZ++);
 			float height = now->trueLine->getContentSize().height;
 			float width = now->trueLine->getContentSize().width;
-			act0 = DelayTime::create((float)i * dur);
+			act0 = DelayTime::create(accumDelay);
+			float nowDelay = 0.0;
+			if (height < width) nowDelay = dur / this->length * width;
+			else nowDelay = dur / this->length * height;
+			accumDelay += nowDelay;
 			switch (now->dir)
 			{
 			case DIR_DOWN:
-				act1 = MoveBy::create(dur, Point(0, -height));
+				act1 = MoveBy::create(nowDelay, Point(0, -height));
 				act2 = Place::create(Point(0, height));
 				act = Sequence::create(act0, act2, act1, NULL);
 				now->falseLine->runAction(act);
 				break;
 			case DIR_UP:
-				act1 = MoveBy::create(dur, Point(0, height));
+				act1 = MoveBy::create(nowDelay, Point(0, height));
 				act2 = Place::create(Point(0, -height));
 				act = Sequence::create(act0, act2, act1, NULL);
 				now->falseLine->runAction(act);
 				break;
 			case DIR_RIGHT:
-				act1 = MoveBy::create(dur, Point(width, 0));
+				act1 = MoveBy::create(nowDelay, Point(width, 0));
 				act2 = Place::create(Point(-width, 0));
 				act = Sequence::create(act0, act2, act1, NULL);
 				now->falseLine->runAction(act);
 				break;
 			case DIR_LEFT:
-				act1 = MoveBy::create(dur, Point(-width, 0));
+				act1 = MoveBy::create(nowDelay, Point(-width, 0));
 				act2 = Place::create(Point(width, 0));
 				act = Sequence::create(act0, act2, act1, NULL);
 				now->falseLine->runAction(act);
@@ -279,18 +317,18 @@ pair<Sprite *, int> lineLinearSpr(POINT a, POINT b, int COLOR)
 	return make_pair(res,0);
 }
 
-vector<LineSeg*> lineSpr(POINT a, POINT b)
+vector<LineSeg*> lineSpr(POINT a, POINT b, int colorOption)
 {
 	float eps = 0.001;
 	vector<LineSeg*> res;
 	if (a.x - b.x < eps && b.x - a.x < eps)//세로선
 	{
-		auto t1 = new LineSeg(a, b);
+		auto t1 = new LineSeg(a, b, colorOption);
 		res.push_back(t1);
 	}
 	else if (a.y - b.y < eps && b.y - a.y < eps) //가로선
 	{
-		auto t2 = new LineSeg(a, b);
+		auto t2 = new LineSeg(a, b, colorOption);
 		res.push_back(t2);
 	}
 	else
@@ -300,13 +338,14 @@ vector<LineSeg*> lineSpr(POINT a, POINT b)
 		POINT up = a, down = b;
 		if (a.y < b.y) { up = b; down = a; }
 		POINT first, second;
-		first.x = (long)(left.x * 0.2 + right.x * 0.8);
+		float alpha = 0.2; //alpha += (float)(rand() % 60000 - 30000) / 30000.0 / 3;
+		first.x = (long)(left.x * alpha + right.x * (1-alpha));
 		first.y = left.y;
 		second.x = first.x;
 		second.y = right.y;
-		res.push_back(new LineSeg(left, first));
-		res.push_back(new LineSeg(first, second));
-		res.push_back(new LineSeg(second, right));
+		res.push_back(new LineSeg(left, first, colorOption));
+		res.push_back(new LineSeg(first, second, colorOption));
+		res.push_back(new LineSeg(second, right, colorOption));
 	}
 	return res;
 }

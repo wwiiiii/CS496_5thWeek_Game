@@ -1,5 +1,7 @@
 #include "MainScene.h"
 #include "GameScene.h"
+#include "SettingScene.h"
+#include <string>
 
 USING_NS_CC;
 
@@ -19,6 +21,20 @@ Scene* MainScene::createScene()
     return scene;
 }
 
+void MainScene::onEnter()
+{
+	Layer::onEnter();
+
+	touchListener = EventListenerTouchOneByOne::create();
+	touchListener->onTouchBegan = CC_CALLBACK_2(MainScene::onTouchBegan, this);
+	Director::getInstance()->getEventDispatcher()->addEventListenerWithFixedPriority(touchListener, 1);
+}
+
+void MainScene::onExit()
+{
+	Layer::onExit();
+}
+
 // on "init" you need to initialize your instance
 bool MainScene::init()
 {
@@ -29,16 +45,13 @@ bool MainScene::init()
         return false;
     }
 	winSize = Director::getInstance()->getWinSize();
-
 	initPlayOption();
 	initSettingOption();
 	initCloseOption();
-	
-	
+	auto size = Director::getInstance()->getOpenGLView()->getFrameSize();
+	CCLOG("winSize %f %f", winSize.width, winSize.height);
+	CCLOG("frameSize %f %f", size.width, size.height);
 
-	touchListener = EventListenerTouchOneByOne::create();
-	touchListener->onTouchBegan = CC_CALLBACK_2(MainScene::onTouchBegan, this);
-	Director::getInstance()->getEventDispatcher()->addEventListenerWithFixedPriority(touchListener, 1);
 
     return true;
 }
@@ -105,7 +118,6 @@ bool MainScene::onTouchBegan(Touch *touch, Event *unused_event)
 	{
 		Director::getInstance()->getEventDispatcher()->removeAllEventListeners();
 		Director::getInstance()->pushScene(GameScene::createScene());
-
 		return false;
 	}
 	
@@ -113,8 +125,8 @@ bool MainScene::onTouchBegan(Touch *touch, Event *unused_event)
 	rect = sprSet->getBoundingBox();
 	if (rect.containsPoint(loc))//touched OPTION
 	{
-
-
+		Director::getInstance()->getEventDispatcher()->removeAllEventListeners();
+		Director::getInstance()->pushScene(SettingScene::createScene());
 		return false;
 	}
 

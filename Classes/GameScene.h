@@ -10,15 +10,19 @@ class GameScene : public Layer
 public:
     static Scene* createScene();
 
-    virtual bool init();
     CREATE_FUNC(GameScene);
+	
 	vector<CircuitNode*> startNodes;
 	int nowZ;
 	Size winSize;
 	Point pastTouch;
-	Layer * bglayer;
+	LayerColor * bglayer;
+
+	virtual bool init();
 	virtual bool onTouchBegan(Touch *touch, Event *unused_event);
 	virtual void onTouchMoved(Touch * touch, Event * unused_event);
+
+	void loadMapData();
 };
 
 #endif // __Game_SCENE_H__

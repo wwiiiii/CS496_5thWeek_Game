@@ -21,7 +21,8 @@ public:
 	EventListenerTouchOneByOne* touchListener;
 	Size winSize;
 
-
+	virtual void MainScene::onEnter();
+	virtual void MainScene::onExit();
 	void initPlayOption();
 	void initSettingOption();
 	void initCloseOption();

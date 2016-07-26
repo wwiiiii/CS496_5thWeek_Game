@@ -24,7 +24,7 @@ class CircuitEdge;
 class CircuitNode;
 class LineSeg;
 
-vector<LineSeg*> lineSpr(POINT from, POINT to);
+vector<LineSeg*> lineSpr(POINT from, POINT to, int);
 pair<Sprite *, int >lineLinearSpr(POINT from, POINT to, int);
 
 class LineSeg
@@ -35,18 +35,19 @@ class LineSeg
 		int dir;
 		ClippingNode * clip;
 		int nowColor;
-		LineSeg(POINT, POINT);
+		LineSeg(POINT, POINT, int);
 };
 
 class CircuitEdge
 {
 	public:
 		DrawNode* spr;
+		float length;
 		vector<LineSeg*> lines;
 		CircuitNode* inputNode;
 		CircuitNode* outputNode;
 		int isTrue, nowColor;
-		CircuitEdge(CircuitNode * from, CircuitNode * to);
+		CircuitEdge(CircuitNode * from, CircuitNode * to,int);
 		void setInputNode(CircuitNode *);
 		void setOutputNode(CircuitNode *);
 		void updateStatusByInput();
