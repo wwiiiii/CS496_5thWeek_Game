@@ -3,15 +3,38 @@
 USING_NS_CC;
 
 
+
+LineSeg::LineSeg(POINT a, POINT b)
+{
+	auto res1 = lineLinearSpr(a, b, 0);
+	auto res2 = lineLinearSpr(a, b, 1);//make_pair(Sprite::create("pixel1.png"), 0);
+	this->trueLine = res1.first;
+	this->falseLine = res2.first;
+	this->dir = res1.second;
+	
+	this->clip = ClippingNode::create();
+	this->clip->setPosition(trueLine->getPosition());
+	this->trueLine->setPosition(0, 0);
+	
+	this->clip->setAlphaThreshold(0.05f);
+	this->clip->setContentSize(trueLine->getContentSize());
+	this->clip->setStencil(trueLine);
+
+	this->clip->addChild(trueLine, 1);
+	this->clip->addChild(falseLine, 2);
+
+	falseLine->setPosition(0, 0);
+	this->nowColor = -1;
+}
+
 CircuitNode::CircuitNode(int type, int isTrue, POINT pos)
 {
 	this->spr = Sprite::create("node_false.png");
 	this->isTrue = isTrue; this->type = type; this->pos = pos;
 	this->spr->setPosition((float)pos.x, (float)pos.y);
-
-	if (type == NODE_END) this->outputEdge = NULL;
-	
-	this->updateColor();
+	this->nowColor = -1;
+	this->outputEdge = NULL;
+	this->updateColor(0);
 }
 
 void CircuitNode::addInputEdge(CircuitEdge * newEdge)
@@ -68,23 +91,31 @@ void CircuitNode::updateStatusByInput()
 	}
 }
 
-void CircuitNode::updateColor()
+void CircuitNode::updateColor(int nowZ)
 {
-	if (this->isTrue == true) this->spr->setTexture("node_true.png");
-	else if (this->isTrue == false) this->spr->setTexture("node_false.png");
+	if (this->nowColor == this->isTrue) return;
+	if (this->isTrue == true) {
+		this->spr->setTexture("node_true.png");
+		if(nowZ != -1)this->spr->setZOrder(nowZ);
+		this->nowColor = this->isTrue;
+	}
+	else if (this->isTrue == false) {
+		this->spr->setTexture("node_false.png");
+		if (nowZ != -1)this->spr->setZOrder(nowZ);
+		this->nowColor = this->isTrue;
+	}
 }
 
 CircuitEdge::CircuitEdge(CircuitNode * from, CircuitNode * to)
 {
+	this->nowColor = -1;
 	this->setInputNode(from);
 	this->setOutputNode(to);
+	from->setOutputEdge(this);
+	to->addInputEdge(this);
 	this->updateStatusByInput();
-	/*this->spr = DrawNode::create();
-	Vec2 origin = Vec2(from->pos.x, from->pos.y);
-	Vec2 dest = Vec2(to->pos.x, to->pos.y);
-	this->spr->drawLine(origin, dest, Color4F::WHITE);
-	this->updateColor();*/
-	this->lines = lineSpr(from->pos, to->pos, 0);
+	this->lines = lineSpr(from->pos, to->pos);
+	this->updateColor(0);
 }
 
 
@@ -100,28 +131,100 @@ void CircuitEdge::setOutputNode(CircuitNode * newNode)
 
 void CircuitEdge::updateStatusByInput()
 {
-	this->isTrue = this->inputNode->isTrue;
+	if(inputNode != NULL)this->isTrue = this->inputNode->isTrue;
 }
 
-void CircuitEdge::updateColor()
+void CircuitEdge::updateColor(int nowZ)
 {
-	auto actionRed = TintTo::create(0.1, 255, 0, 0);
-	auto actionGreen = TintTo::create(0.1, 0, 255, 0);
+	float dur = 0.5;
+	if (this->nowColor == this->isTrue) return;
+	this->nowColor = this->isTrue;
+	vector<LineSeg *> & lines = this->lines;
+	auto act = Sequence::create(NULL);
+	auto act0 = DelayTime::create(0.0);
+	auto act1 = MoveBy::create(0, Point(0, 0));
+	auto act2 = Place::create(Point(0, 0));
 	if (this->isTrue == true) {
-		//this->spr->runAction(actionGreen);
-		/*this->spr->setColor(Color3B::GREEN);
-		this->spr->clear();
-		Vec2 origin = Vec2(this->inputNode->pos.x, this->inputNode->pos.y);
-		Vec2 dest = Vec2(this->outputNode->pos.x, this->outputNode->pos.y);
-		this->spr->drawLine(origin, dest, Color4F::GREEN);*/
+		CCLOG("change red to green");
+		for (int i = 0; i < lines.size(); i++)
+		{
+			LineSeg * now = lines[i];
+			now->clip->setZOrder(nowZ++);
+			float height = now->trueLine->getContentSize().height;
+			float width = now->trueLine->getContentSize().width;
+			act0 = DelayTime::create((float)i * dur);
+			switch (now->dir)
+			{
+			case DIR_DOWN:
+				act1 = MoveBy::create(dur, Point(0, -height));
+				act2 = Place::create(Point(0,height));
+				act = Sequence::create(act0, act1, act2, NULL);
+				now->falseLine->runAction(act);
+				break;
+			case DIR_UP:
+				act1 = MoveBy::create(dur, Point(0, height));
+				act2 = Place::create(Point(0, -height));
+				act = Sequence::create(act0, act1, act2, NULL);
+				now->falseLine->runAction(act);
+				break;
+			case DIR_RIGHT:
+				act1 = MoveBy::create(dur, Point(width, 0));
+				act2 = Place::create(Point(-width, 0));
+				act = Sequence::create(act0, act1, act2, NULL);
+				now->falseLine->runAction(act);
+				break;
+			case DIR_LEFT:
+				act1 = MoveBy::create(dur, Point(-width, 0));
+				act2 = Place::create(Point(width, 0));
+				act = Sequence::create(act0, act1, act2, NULL);
+				now->falseLine->runAction(act);
+				break;
+			default:
+				break;
+			}
+			CCLOG("true %f %f false %f %f", now->trueLine->getPosition().x, now->trueLine->getPosition().y, now->falseLine->getPosition().x, now->falseLine->getPosition().y);
+		}
 	}
 	else if (this->isTrue == false) {
-		//this->spr->runAction(actionRed);
-		/*this->spr->setColor(Color3B::RED);
-		this->spr->clear();
-		Vec2 origin = Vec2(this->inputNode->pos.x, this->inputNode->pos.y);
-		Vec2 dest = Vec2(this->outputNode->pos.x, this->outputNode->pos.y);
-		this->spr->drawLine(origin, dest, Color4F::RED);*/
+		CCLOG("change green to red");
+		for (int i = 0; i < lines.size(); i++)
+		{
+			LineSeg * now = lines[i];
+			now->clip->setZOrder(nowZ++);
+			float height = now->trueLine->getContentSize().height;
+			float width = now->trueLine->getContentSize().width;
+			act0 = DelayTime::create((float)i * dur);
+			switch (now->dir)
+			{
+			case DIR_DOWN:
+				act1 = MoveBy::create(dur, Point(0, -height));
+				act2 = Place::create(Point(0, height));
+				act = Sequence::create(act0, act2, act1, NULL);
+				now->falseLine->runAction(act);
+				break;
+			case DIR_UP:
+				act1 = MoveBy::create(dur, Point(0, height));
+				act2 = Place::create(Point(0, -height));
+				act = Sequence::create(act0, act2, act1, NULL);
+				now->falseLine->runAction(act);
+				break;
+			case DIR_RIGHT:
+				act1 = MoveBy::create(dur, Point(width, 0));
+				act2 = Place::create(Point(-width, 0));
+				act = Sequence::create(act0, act2, act1, NULL);
+				now->falseLine->runAction(act);
+				break;
+			case DIR_LEFT:
+				act1 = MoveBy::create(dur, Point(-width, 0));
+				act2 = Place::create(Point(width, 0));
+				act = Sequence::create(act0, act2, act1, NULL);
+				now->falseLine->runAction(act);
+				break;
+			default:
+				break;
+			}
+			CCLOG("true %f %f false %f %f", now->trueLine->getPosition().x, now->trueLine->getPosition().y, now->falseLine->getPosition().x, now->falseLine->getPosition().y);
+		}
 	}
 }
 
@@ -143,8 +246,6 @@ pair<Sprite *, int> lineLinearSpr(POINT a, POINT b, int COLOR)
 	if (a.x - b.x < eps && b.x - a.x < eps)//세로선
 	{
 		float height = b.y - a.y; if (height < 0) height = -height;
-		/*res->setScaleY(height+margin);
-		res->setScaleX(thick);*/
 
 		auto renderTexture = RenderTexture::create(thick, height + margin, Texture2D::PixelFormat::RGBA8888);
 		renderTexture->begin();
@@ -159,9 +260,7 @@ pair<Sprite *, int> lineLinearSpr(POINT a, POINT b, int COLOR)
 	else if (a.y-b.y < eps && b.y - a.y < eps) //가로선
 	{
 		float width = b.x - a.x; if (width < 0) width = -width;
-		/*res->setScaleX(width+margin);
-		res->setScaleY(thick);*/
-		
+
 		auto renderTexture = RenderTexture::create(width + margin, thick, Texture2D::PixelFormat::RGBA8888);
 		renderTexture->begin();
 		res->visit();
@@ -180,18 +279,19 @@ pair<Sprite *, int> lineLinearSpr(POINT a, POINT b, int COLOR)
 	return make_pair(res,0);
 }
 
-vector<pair<Sprite *, int> > lineSpr(POINT a, POINT b, int COLOR)
+vector<LineSeg*> lineSpr(POINT a, POINT b)
 {
 	float eps = 0.001;
-	vector<pair<Sprite *,int> > res;
-	if (COLOR < 0 || COLOR > 3) res;
+	vector<LineSeg*> res;
 	if (a.x - b.x < eps && b.x - a.x < eps)//세로선
 	{
-		res.push_back(lineLinearSpr(a, b, COLOR));
+		auto t1 = new LineSeg(a, b);
+		res.push_back(t1);
 	}
 	else if (a.y - b.y < eps && b.y - a.y < eps) //가로선
 	{
-		res.push_back(lineLinearSpr(a, b, COLOR));
+		auto t2 = new LineSeg(a, b);
+		res.push_back(t2);
 	}
 	else
 	{
@@ -204,9 +304,10 @@ vector<pair<Sprite *, int> > lineSpr(POINT a, POINT b, int COLOR)
 		first.y = left.y;
 		second.x = first.x;
 		second.y = right.y;
-		res.push_back(lineLinearSpr(left, first, COLOR));
-		res.push_back(lineLinearSpr(first, second, COLOR));
-		res.push_back(lineLinearSpr(second, right, COLOR));
+		res.push_back(new LineSeg(left, first));
+		res.push_back(new LineSeg(first, second));
+		res.push_back(new LineSeg(second, right));
 	}
 	return res;
 }
+

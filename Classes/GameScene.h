@@ -13,6 +13,7 @@ public:
     virtual bool init();
     CREATE_FUNC(GameScene);
 	vector<CircuitNode*> startNodes;
+	int nowZ;
 	Size winSize;
 	Point pastTouch;
 	Layer * bglayer;

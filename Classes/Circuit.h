@@ -22,21 +22,35 @@ USING_NS_CC;
 
 class CircuitEdge;
 class CircuitNode;
-vector<pair<Sprite *, int> > lineSpr(POINT from, POINT to, int);
+class LineSeg;
+
+vector<LineSeg*> lineSpr(POINT from, POINT to);
 pair<Sprite *, int >lineLinearSpr(POINT from, POINT to, int);
+
+class LineSeg
+{
+	public:
+		Sprite * trueLine;
+		Sprite * falseLine;
+		int dir;
+		ClippingNode * clip;
+		int nowColor;
+		LineSeg(POINT, POINT);
+};
+
 class CircuitEdge
 {
 	public:
 		DrawNode* spr;
-		vector<pair<Sprite *, int> > lines;
+		vector<LineSeg*> lines;
 		CircuitNode* inputNode;
 		CircuitNode* outputNode;
-		int isTrue;
+		int isTrue, nowColor;
 		CircuitEdge(CircuitNode * from, CircuitNode * to);
 		void setInputNode(CircuitNode *);
 		void setOutputNode(CircuitNode *);
 		void updateStatusByInput();
-		void updateColor();
+		void updateColor(int);
 
 };
 
@@ -47,12 +61,12 @@ class CircuitNode
 		vector<CircuitEdge*> inputEdges;
 		CircuitEdge *outputEdge;
 		POINT pos;
-		int isTrue, type;
+		int isTrue, type, nowColor;
 		CircuitNode(int type, int isTrue, POINT pos);
 		void addInputEdge(CircuitEdge *);
 		void setOutputEdge(CircuitEdge *);
 		void updateStatusByInput();
-		void updateColor();
+		void updateColor(int);
 };
 
 #endif // __CIRCUIT_NODE_H__

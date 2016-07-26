@@ -34,11 +34,10 @@ bool MainScene::init()
 	initSettingOption();
 	initCloseOption();
 	
+	
+
 	touchListener = EventListenerTouchOneByOne::create();
 	touchListener->onTouchBegan = CC_CALLBACK_2(MainScene::onTouchBegan, this);
-	/*touchListener->onTouchMoved = CC_CALLBACK_2(MainScene::onTouchMoved, this);
-	touchListener->onTouchEnded = CC_CALLBACK_2(MainScene::onTouchEnded, this);
-	touchListener->onTouchCancelled = CC_CALLBACK_2(MainScene::onTouchCancelled, this);*/
 	Director::getInstance()->getEventDispatcher()->addEventListenerWithFixedPriority(touchListener, 1);
 
     return true;
