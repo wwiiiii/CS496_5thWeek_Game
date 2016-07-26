@@ -1,9 +1,10 @@
 #include "GameScene.h"
 #include "Circuit.h"
-
+#include <vector>
 USING_NS_CC;
 
 
+vector<CircuitNode*> startNodes;
 Scene* GameScene::createScene()
 {
     // 'scene' is an autorelease object
@@ -31,53 +32,35 @@ bool GameScene::init()
 	winSize = Director::getInstance()->getWinSize();
 	
 	auto a1 = new CircuitNode(NODE_START, true, { 100, (long)(winSize.height - 100) });
-	auto a2 = new CircuitNode(NODE_START, false, { 100, (long)(winSize.height - 200) });
+	auto a2 = new CircuitNode(NODE_START, false, { 100, (long)(winSize.height - 400) });
+	auto a6 = new CircuitNode(NODE_START, false, { 200, (long)(winSize.height - 200) });
 
-	auto a3 = new CircuitNode(NODE_AND, false, { 400, (long)(winSize.height - 100) });
+	auto a3 = new CircuitNode(NODE_AND, false, { 600, (long)(winSize.height - 100) });
 
-	auto a4 = new CircuitNode(NODE_OR, false, { 400, (long)(winSize.height - 200) });
+	auto a4 = new CircuitNode(NODE_OR, false, { 600, (long)(winSize.height - 400) });
 
 	auto e1 = new CircuitEdge(a1, a3);
 	auto e2 = new CircuitEdge(a2, a3);
-	
-	/*
-	std::string shaderName = "res/STHologramShader";
-	auto glCache = GLProgramCache::getInstance();
-	GLProgram* prog = glCache->getGLProgram(shaderName);
-	if (!prog)
-	{
-		auto fs = FileUtils::getInstance();
-		auto fragPath = fs->fullPathForFilename(shaderName + ".fsh");
-		auto vertPath = fs->fullPathForFilename(shaderName + ".vsh");
-		std::string fragmentSource = fs->getStringFromFile(fragPath);
-		std::string vertexSource = fs->getStringFromFile(vertPath);
-		auto fragB = fragmentSource.c_str();
-		auto vertB = vertexSource.c_str();
-		prog = GLProgram::createWithByteArrays(vertB, fragB);
-		glCache->addGLProgram(prog, shaderName);
-	}
-	e1->spr->setGLProgram(prog);
-	prog->use();*/
-	GLProgram * p = new GLProgram();
-	p->initWithFilenames("gray.vsh", "gray.fsh");
-	p->bindAttribLocation(GLProgram::ATTRIBUTE_NAME_POSITION, GLProgram::VERTEX_ATTRIB_POSITION);
-	p->bindAttribLocation(GLProgram::ATTRIBUTE_NAME_COLOR, GLProgram::VERTEX_ATTRIB_COLOR);
-	p->bindAttribLocation(GLProgram::ATTRIBUTE_NAME_TEX_COORD, GLProgram::VERTEX_ATTRIB_TEX_COORDS);
-	p->link();
-	p->updateUniforms();
-	auto gp = GLProgramState::create(p);
-	gp->setUniformVec2("u_stepSize", Vec2(1.0 / winSize.width, 1.0 / winSize.height));
-	/*a1->spr->setGLProgram(p);
-	a1->spr->setGLProgramState(gp);
-	a2->spr->setGLProgram(p);
-	a3->spr->setGLProgram(p);*/
+	auto e3 = new CircuitEdge(a6, a4);
 
-	this->addChild(e1->spr);
-	this->addChild(e2->spr);
-	this->addChild(a1->spr);
-	this->addChild(a2->spr);
-	this->addChild(a3->spr);
-	this->addChild(a4->spr);
+	for (int i = 0; i < e1->lines.size(); i++)
+		this->addChild(e1->lines[i].first);
+	for (int i = 0; i < e2->lines.size(); i++)
+		this->addChild(e2->lines[i].first);
+	for (int i = 0; i < e3->lines.size(); i++)
+		this->addChild(e3->lines[i].first);
+	startNodes.push_back(a1);
+	startNodes.push_back(a2);
+	startNodes.push_back(a3);
+	startNodes.push_back(a4);
+	startNodes.push_back(a6);
+
+	
+	for (auto i : startNodes)
+	{
+		//i->spr->setOpacity(128);
+		this->addChild(i->spr);
+	}
 
 	auto touchListener = EventListenerTouchOneByOne::create();
 	touchListener->onTouchBegan = CC_CALLBACK_2(GameScene::onTouchBegan, this);
@@ -90,14 +73,15 @@ bool GameScene::init()
 bool GameScene::onTouchBegan(Touch *touch, Event *unused_event)
 {
 	Point loc = touch->getLocation();
-	/*auto sprPlay = (Sprite*)this->getChildByTag(TAG_PLAY);
-	Rect rect = sprPlay->getBoundingBox();
-	if (rect.containsPoint(loc))//touched GAME PLAY
+	for (auto i : startNodes)
 	{
-	
-	
-		return false;
+		Rect rect = i->spr->getBoundingBox();
+		if (rect.containsPoint(loc))
+		{
+			i->isTrue = !i->isTrue;
+			i->updateColor();
+			return false;
+		}
 	}
-	*/
 	return false;
 }

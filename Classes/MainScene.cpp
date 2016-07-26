@@ -33,7 +33,7 @@ bool MainScene::init()
 	initPlayOption();
 	initSettingOption();
 	initCloseOption();
-
+	
 	auto touchListener = EventListenerTouchOneByOne::create();
 	touchListener->onTouchBegan = CC_CALLBACK_2(MainScene::onTouchBegan, this);
 	/*touchListener->onTouchMoved = CC_CALLBACK_2(MainScene::onTouchMoved, this);
