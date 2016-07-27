@@ -13,16 +13,18 @@ public:
     CREATE_FUNC(GameScene);
 	
 	vector<CircuitNode*> startNodes;
+	vector<CircuitNode*> allNodes;
+	vector<CircuitEdge*> allEdges;
 	int nowZ;
 	Size winSize;
 	Point pastTouch;
 	LayerColor * bglayer;
-
+	int isUpdating;
 	virtual bool init();
 	virtual bool onTouchBegan(Touch *touch, Event *unused_event);
 	virtual void onTouchMoved(Touch * touch, Event * unused_event);
 
-	void loadMapData();
+	void loadMapData(int);
 };
 
 #endif // __Game_SCENE_H__

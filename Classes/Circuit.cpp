@@ -1,5 +1,6 @@
 #include <vector>
 #include "Circuit.h"
+#include "GameScene.h"
 USING_NS_CC;
 
 
@@ -43,24 +44,24 @@ LineSeg::LineSeg(POINT a, POINT b, int colorOption)
 CircuitNode::CircuitNode(int type, int isTrue, POINT pos)
 {
 	int nowOpt = UserDefault::getInstance()->getIntegerForKey("colorOption");
-	if(nowOpt == 0)	this->spr = Sprite::create("node_false0.png");
-	else this->spr = Sprite::create("node_false1.png");
+	if(nowOpt == 0)	this->spr = Sprite::create("\\nodeimg\\node_false.png");
+	else this->spr = Sprite::create("\\nodeimg\\node_false.png");
 	this->spr->setScale(0.25*0.5);
 	this->isTrue = isTrue; this->type = type; this->pos = pos;
 	this->spr->setPosition((float)pos.x, (float)pos.y);
 	this->nowColor = -1;
-	this->outputEdge = NULL;
-	this->updateColor(0);
+	int t = -1;  this->updateColor(t);
 }
 
 void CircuitNode::addInputEdge(CircuitEdge * newEdge)
 {
 	this->inputEdges.push_back(newEdge);
+	this->updateCount.push_back(0);
 }
 
-void CircuitNode::setOutputEdge(CircuitEdge * newEdge)
+void CircuitNode::addOutputEdge(CircuitEdge * newEdge)
 {
-	this->outputEdge = newEdge;
+	this->outputEdges.push_back(newEdge);
 }
 
 void CircuitNode::updateStatusByInput()
@@ -102,29 +103,45 @@ void CircuitNode::updateStatusByInput()
 		if (falseExist == true && trueExist == true) this->isTrue = true;
 		else this->isTrue = false;
 		break;
+	case NODE_START:
+		break;
+	case NODE_END:
+		result = true;
+		for (auto it = this->inputEdges.begin(); it != this->inputEdges.end(); it++)
+		{
+			if ((*it)->isTrue == false) {
+				result = false; break;
+			}
+		}
+		this->isTrue = result;
+		break;
 	default:
 		break;
 	}
 }
 
-void CircuitNode::updateColor(int nowZ)
+void CircuitNode::updateColor(int & nowZ)
 {
 	int nowOpt = UserDefault::getInstance()->getIntegerForKey("colorOption");
 	if (this->nowColor == this->isTrue) return;
-	if (this->isTrue == true) {
-		if (nowOpt == 0) this->spr->setTexture("node_true0.png");
-		else this->spr->setTexture("node_true1.png");
-		if(nowZ != -1)this->spr->setZOrder(nowZ);
-		this->spr->setScale(0.25*0.5);
-		this->nowColor = this->isTrue;
+	char nodeName[50];
+	if(this->isTrue == true) sprintf(nodeName, "\\nodeimg\\node_true%d_%s.png", nowOpt, nodeNameByType[this->type]);
+	else sprintf(nodeName, "\\nodeimg\\node_false%d_%s.png", nowOpt, nodeNameByType[this->type]);
+	CCLOG(nodeName);
+	this->spr->setTexture(nodeName);
+	if (nowZ != -1) this->spr->setZOrder(nowZ++);
+	switch (this->type)
+	{
+	case NODE_AND:
+		this->spr->setScale(0.5*0.125); break;
+	case NODE_OR:
+		this->spr->setScale(0.5*0.125); break;
+	case NODE_XOR:
+		this->spr->setScale(0.5*0.125); break;
+	default:
+		this->spr->setScale(0.125); break;
 	}
-	else if (this->isTrue == false) {
-		if (nowOpt == 0) this->spr->setTexture("node_false0.png");
-		else this->spr->setTexture("node_false1.png");
-		if (nowZ != -1)this->spr->setZOrder(nowZ);
-		this->spr->setScale(0.25*0.5);
-		this->nowColor = this->isTrue;
-	}
+	this->nowColor = this->isTrue;
 }
 
 CircuitEdge::CircuitEdge(CircuitNode * from, CircuitNode * to, int colorOption)
@@ -133,7 +150,7 @@ CircuitEdge::CircuitEdge(CircuitNode * from, CircuitNode * to, int colorOption)
 	this->nowColor = -1;
 	this->setInputNode(from);
 	this->setOutputNode(to);
-	from->setOutputEdge(this);
+	from->addOutputEdge(this);
 	to->addInputEdge(this);
 	this->updateStatusByInput();
 	this->lines = lineSpr(from->pos, to->pos, colorOption);
@@ -143,7 +160,7 @@ CircuitEdge::CircuitEdge(CircuitNode * from, CircuitNode * to, int colorOption)
 		float h2 = this->lines[i]->trueLine->getContentSize().height;
 		if (h1 < h2) this->length += h2; else this->length += h1;
 	}
-	this->updateColor(0);
+	int t = 0; this->updateColor(t);
 }
 
 
@@ -162,7 +179,7 @@ void CircuitEdge::updateStatusByInput()
 	if(inputNode != NULL)this->isTrue = this->inputNode->isTrue;
 }
 
-void CircuitEdge::updateColor(int nowZ)
+void CircuitEdge::updateColor(int& nowZ)
 {
 	float dur = 0.3;
 	if (this->nowColor == this->isTrue) return;
@@ -170,7 +187,7 @@ void CircuitEdge::updateColor(int nowZ)
 	vector<LineSeg *> & lines = this->lines;
 	auto act = Sequence::create(NULL);
 	auto act0 = DelayTime::create(0.0);
-	auto act1 = MoveBy::create(0, Point(0, 0));
+	auto act1 = MoveTo::create(0, Point(0, 0));
 	auto act2 = Place::create(Point(0, 0));
 	if (this->isTrue == true) {
 		CCLOG("change red to green");
@@ -189,25 +206,25 @@ void CircuitEdge::updateColor(int nowZ)
 			switch (now->dir)
 			{
 			case DIR_DOWN:
-				act1 = MoveBy::create(nowDelay, Point(0, -height));
+				act1 = MoveTo::create(nowDelay, Point(0, -height));
 				act2 = Place::create(Point(0,height));
 				act = Sequence::create(act0, act1, act2, NULL);
 				now->falseLine->runAction(act);
 				break;
 			case DIR_UP:
-				act1 = MoveBy::create(nowDelay, Point(0, height));
+				act1 = MoveTo::create(nowDelay, Point(0, height));
 				act2 = Place::create(Point(0, -height));
 				act = Sequence::create(act0, act1, act2, NULL);
 				now->falseLine->runAction(act);
 				break;
 			case DIR_RIGHT:
-				act1 = MoveBy::create(nowDelay, Point(width, 0));
+				act1 = MoveTo::create(nowDelay, Point(width, 0));
 				act2 = Place::create(Point(-width, 0));
 				act = Sequence::create(act0, act1, act2, NULL);
 				now->falseLine->runAction(act);
 				break;
 			case DIR_LEFT:
-				act1 = MoveBy::create(nowDelay, Point(-width, 0));
+				act1 = MoveTo::create(nowDelay, Point(-width, 0));
 				act2 = Place::create(Point(width, 0));
 				act = Sequence::create(act0, act1, act2, NULL);
 				now->falseLine->runAction(act);
@@ -235,25 +252,25 @@ void CircuitEdge::updateColor(int nowZ)
 			switch (now->dir)
 			{
 			case DIR_DOWN:
-				act1 = MoveBy::create(nowDelay, Point(0, -height));
+				act1 = MoveTo::create(nowDelay, Point(0, 0));
 				act2 = Place::create(Point(0, height));
 				act = Sequence::create(act0, act2, act1, NULL);
 				now->falseLine->runAction(act);
 				break;
 			case DIR_UP:
-				act1 = MoveBy::create(nowDelay, Point(0, height));
+				act1 = MoveTo::create(nowDelay, Point(0, 0));
 				act2 = Place::create(Point(0, -height));
 				act = Sequence::create(act0, act2, act1, NULL);
 				now->falseLine->runAction(act);
 				break;
 			case DIR_RIGHT:
-				act1 = MoveBy::create(nowDelay, Point(width, 0));
+				act1 = MoveTo::create(nowDelay, Point(0, 0));
 				act2 = Place::create(Point(-width, 0));
 				act = Sequence::create(act0, act2, act1, NULL);
 				now->falseLine->runAction(act);
 				break;
 			case DIR_LEFT:
-				act1 = MoveBy::create(nowDelay, Point(-width, 0));
+				act1 = MoveTo::create(nowDelay, Point(0, 0));
 				act2 = Place::create(Point(width, 0));
 				act = Sequence::create(act0, act2, act1, NULL);
 				now->falseLine->runAction(act);
@@ -264,6 +281,10 @@ void CircuitEdge::updateColor(int nowZ)
 			CCLOG("true %f %f false %f %f", now->trueLine->getPosition().x, now->trueLine->getPosition().y, now->falseLine->getPosition().x, now->falseLine->getPosition().y);
 		}
 	}
+	auto delayAct = DelayTime::create(dur);
+	auto callFunc = CallFunc::create(CC_CALLBACK_0(updateOutputNode, this, this, nowZ));
+	auto next = Sequence::create(delayAct, callFunc, NULL);
+	auto temp = Sprite::create(); temp->runAction(next);
 }
 
 /*
@@ -350,3 +371,43 @@ vector<LineSeg*> lineSpr(POINT a, POINT b, int colorOption)
 	return res;
 }
 
+
+void CircuitNode::update(CircuitEdge * input, int&nowZ)
+{
+	if (this->type != NODE_START)//same as input != NULL
+	{
+		for (int i = 0; i < inputEdges.size(); i++)
+		{
+			if (input == inputEdges[i]) {
+				updateCount[i] += 1;
+				break;
+			}
+		}
+		//앞선 노드 중 갱신 되지 않은 것이 있으면 중단
+		for (int i = 0; i < updateCount.size(); i++)
+		{
+			if (updateCount[i] == 0) return;
+		}
+		for (int i = 0; i < updateCount.size(); i++) updateCount[i] -= 1;
+	}
+	this->updateStatusByInput();
+	int t = -1; this->updateColor(t);
+	for (int i = 0; i < outputEdges.size(); i++)
+	{
+		outputEdges[i]->updateStatusByInput();
+		outputEdges[i]->updateColor(nowZ);
+	}
+	if (this->type == NODE_END)
+	{
+		CCLOG("update Ended");
+		CCLOG("parent %p", (this->spr->getParent()->getParent()));
+		((GameScene*)(this->spr->getParent()->getParent()))->isUpdating -= 1;
+	}
+}
+
+
+void updateOutputNode(CircuitEdge* me,int& nowZ)
+{
+	CCLOG("updateOutputNode with %p %d", me, nowZ);
+	me->outputNode->update(me, nowZ);
+}
