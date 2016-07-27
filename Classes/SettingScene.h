@@ -22,7 +22,7 @@ public:
 	
 	EventListenerTouchOneByOne* touchListener;
 	Size winSize;
-
+	static void refreshScene(void * useless);
 	virtual bool onTouchBegan(Touch *touch, Event *unused_event);
 };
 

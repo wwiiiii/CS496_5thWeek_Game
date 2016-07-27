@@ -25,6 +25,37 @@ void MainScene::onEnter()
 {
 	Layer::onEnter();
 
+	int colorOpt = UserDefault::getInstance()->getIntegerForKey("colorOption");
+	if (colorOpt == 1) this->addChild(Sprite::create("whiteBG.png"));
+	float margin = 200.0, mar2 = 100.0;
+	
+	auto rank = Sprite::create(); auto setting = Sprite::create();
+	auto play = Sprite::create(); auto close = Sprite::create();
+	if (colorOpt == 0)
+	{
+		play->setTexture("play_white.png"); setting->setTexture("setting_white.png");
+		rank->setTexture("rank_white.png"); close->setTexture("close_white.png");
+	}
+	else
+	{
+		play->setTexture("play_black.png"); setting->setTexture("setting_black.png");
+		rank->setTexture("rank_black.png"); close->setTexture("close_black.png");
+	}
+	
+	play->setTag(TAG_PLAY); play->setScale(0.5);
+	play->setPosition(winSize.width / 2 - margin, winSize.height / 2-mar2);
+	
+	rank->setTag(TAG_RANK); rank->setScale(0.25);
+	rank->setPosition(winSize.width / 2 + margin, winSize.height / 2 - mar2);
+	
+	setting->setTag(TAG_SETTING); setting->setScale(0.5);
+	setting->setPosition(winSize.width / 2 + 0.0, winSize.height / 2 - mar2);
+	
+	close->setTag(TAG_CLOSE); close->setScale(0.25);
+	close->setPosition(winSize.width - 50, winSize.height - 50);
+
+	this->addChild(play); this->addChild(setting); this->addChild(rank); this->addChild(close);
+
 	touchListener = EventListenerTouchOneByOne::create();
 	touchListener->onTouchBegan = CC_CALLBACK_2(MainScene::onTouchBegan, this);
 	Director::getInstance()->getEventDispatcher()->addEventListenerWithFixedPriority(touchListener, 1);
@@ -33,6 +64,8 @@ void MainScene::onEnter()
 void MainScene::onExit()
 {
 	Layer::onExit();
+	this->cleanup();
+	this->removeAllChildrenWithCleanup(false);
 }
 
 // on "init" you need to initialize your instance
@@ -45,9 +78,10 @@ bool MainScene::init()
         return false;
     }
 	winSize = Director::getInstance()->getWinSize();
-	initPlayOption();
+	/*initPlayOption();
 	initSettingOption();
-	initCloseOption();
+	*/
+	
 	auto size = Director::getInstance()->getOpenGLView()->getFrameSize();
 	CCLOG("winSize %f %f", winSize.width, winSize.height);
 	CCLOG("frameSize %f %f", size.width, size.height);
@@ -55,59 +89,6 @@ bool MainScene::init()
 
     return true;
 }
-
-void MainScene::initPlayOption()
-{
-	int nowwid = 300, nowhei = 60;
-	int centerwid = winSize.width / 2, centerhei = winSize.height/2 - 50;
-	auto la = DrawNode::create();
-	la->drawRect(Point(centerwid - nowwid/2, centerhei - nowhei/2), Point(centerwid + nowwid/2, centerhei + nowhei/2), Color4F::WHITE);
-	
-	auto label = Label::createWithTTF("GAME PLAY", "NanumGothicExtraBold.ttf", 40, Size((float)nowwid, (float)nowhei), TextHAlignment::CENTER, TextVAlignment::CENTER );
-	label->setPosition(Point(centerwid, centerhei));
-	label->setTag(TAG_PLAY);
-	label->setAnchorPoint(Point(0.5, 0.5));
-	label->setColor(Color3B::WHITE);
-
-	this->addChild(la);
-	this->addChild(label);
-}
-
-
-void MainScene::initSettingOption()
-{
-	int nowwid = 300, nowhei = 60;
-	int centerwid = winSize.width / 2, centerhei = winSize.height / 2 - 120;
-	auto la = DrawNode::create();
-	la->drawRect(Point(centerwid - nowwid / 2, centerhei - nowhei / 2), Point(centerwid + nowwid / 2, centerhei + nowhei / 2), Color4F::WHITE);
-
-	auto label = Label::createWithTTF("OPTION", "NanumGothicExtraBold.ttf", 40, Size((float)nowwid, (float)nowhei), TextHAlignment::CENTER, TextVAlignment::CENTER);
-	label->setPosition(Point(centerwid, centerhei));
-	label->setTag(TAG_SETTING);
-	label->setAnchorPoint(Point(0.5, 0.5));
-	label->setColor(Color3B::WHITE);
-
-	this->addChild(la);
-	this->addChild(label);
-}
-
-void MainScene::initCloseOption()
-{
-	int nowwid = 50, nowhei = 50;
-	int centerwid = winSize.width - 50, centerhei = winSize.height - 50;
-	auto la = DrawNode::create();
-	la->drawRect(Point(centerwid - nowwid / 2, centerhei - nowhei / 2), Point(centerwid + nowwid / 2, centerhei + nowhei / 2), Color4F::WHITE);
-
-	auto label = Label::createWithTTF("X", "NanumGothicExtraBold.ttf", 40, Size((float)nowwid, (float)nowhei), TextHAlignment::CENTER, TextVAlignment::CENTER);
-	label->setPosition(Point(centerwid, centerhei));
-	label->setTag(TAG_CLOSE);
-	label->setAnchorPoint(Point(0.5, 0.5));
-	label->setColor(Color3B::WHITE);
-
-	this->addChild(la);
-	this->addChild(label);
-}
-
 
 bool MainScene::onTouchBegan(Touch *touch, Event *unused_event)
 {

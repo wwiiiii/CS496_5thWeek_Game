@@ -36,7 +36,8 @@ bool SettingScene::init()
         return false;
     }
 	winSize = Director::getInstance()->getWinSize();
-		
+	int colorOption = UserDefault::getInstance()->getIntegerForKey("colorOption");
+	if (colorOption == 1) this->addChild(Sprite::create("whiteBG.png"));
 	initCloseOption();
 	initColorOption();
 
@@ -46,15 +47,22 @@ bool SettingScene::init()
 
 void SettingScene::initCloseOption()
 {
+	int nowOption = UserDefault::getInstance()->getIntegerForKey("colorOption");
+	
 	int nowwid = 50, nowhei = 50;
 	int centerwid = winSize.width - 50, centerhei = winSize.height - 50;
 	auto la = DrawNode::create();
-	la->drawRect(Point(centerwid - nowwid / 2, centerhei - nowhei / 2), Point(centerwid + nowwid / 2, centerhei + nowhei / 2), Color4F::WHITE);
 	
-	auto spr = Sprite::create("back.png");
+	auto spr = Sprite::create();
 	spr->setPosition(Point(centerwid, centerhei));
 	spr->setTag(TAG_BACK);
 
+	if (nowOption == 0)	{
+		spr->setTexture("back_white.png");
+	}	else {
+		spr->setTexture("back_black.png");
+	}
+	spr->setScale(0.25);
 	this->addChild(la);
 	this->addChild(spr);
 }
@@ -72,16 +80,25 @@ void SettingScene::initColorOption()
 	spr2->setPosition(winSize.width / 2 + width, winSize.height / 2);
 	this->addChild(spr2);
 
-	auto spr3 = Sprite::create("selectColor.png");
+	auto spr3 = Sprite::create("selectColor_white.png");
 	spr3->setPosition(winSize / 2);
 	this->addChild(spr3);
 
-	auto spr4 = Sprite::create("colorOpt2.png");
+	auto spr4 = Sprite::create("slide_white.png");
 	spr4->setTag(TAG_COLOR);
 	this->addChild(spr4);
 	int wid = spr4->getContentSize().width, hei = spr4->getContentSize().height;
-	if (nowOption == 0) spr4->setPosition(winSize.width / 2 + wid / 2, winSize.height / 2);
-	else spr4->setPosition(winSize.width / 2 - wid / 2, winSize.height / 2);
+	
+	if (nowOption == 0)
+	{
+		spr4->setPosition(winSize.width / 2 + wid / 2, winSize.height / 2);
+	}
+	else
+	{
+		spr3->setTexture("selectColor_black.png");
+		spr4->setTexture("slide_black.png");
+		spr4->setPosition(winSize.width / 2 - wid / 2, winSize.height / 2);
+	}
 }
 
 bool SettingScene::onTouchBegan(Touch *touch, Event *unused_event)
@@ -106,17 +123,27 @@ bool SettingScene::onTouchBegan(Touch *touch, Event *unused_event)
 			UserDefault::getInstance()->setIntegerForKey("colorOption", 0);
 			UserDefault::getInstance()->flush();
 			auto act = MoveBy::create(0.5, Point(sprColor->getContentSize().width, 0));
-			sprColor->runAction(act);
+			auto callFunc = CallFunc::create(CC_CALLBACK_0(SettingScene::refreshScene, this));
+			auto next = Sequence::create(act, callFunc, NULL);
+			//auto func = CallFunc::create(CC_CALLBACK_0(refreshScene, this));
+			sprColor->runAction(next);
 		}
 		else
 		{
 			UserDefault::getInstance()->setIntegerForKey("colorOption", 1);
 			UserDefault::getInstance()->flush();
 			auto act = MoveBy::create(0.5, Point(-sprColor->getContentSize().width, 0));
-			sprColor->runAction(act);
+			auto callFunc = CallFunc::create(CC_CALLBACK_0(SettingScene::refreshScene, this));
+			auto next = Sequence::create(act, callFunc, NULL);
+			sprColor->runAction(next);
 		}
 		return false;
 	}
-
 	return false;
+}
+
+void SettingScene::refreshScene(void * useless)
+{
+	Director::getInstance()->getEventDispatcher()->removeAllEventListeners();
+	Director::getInstance()->replaceScene(SettingScene::createScene());
 }

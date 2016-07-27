@@ -6,6 +6,7 @@
 #define TAG_PLAY 1
 #define TAG_SETTING 2
 #define TAG_CLOSE 3
+#define TAG_RANK 4
 
 
 USING_NS_CC;
@@ -23,9 +24,6 @@ public:
 
 	virtual void MainScene::onEnter();
 	virtual void MainScene::onExit();
-	void initPlayOption();
-	void initSettingOption();
-	void initCloseOption();
 	virtual bool onTouchBegan(Touch *touch, Event *unused_event);
 };
 

@@ -21,33 +21,45 @@ Scene* GameScene::createScene()
     return scene;
 }
 
-// on "init" you need to initialize your instance
-bool GameScene::init()
+void GameScene::onEnter()
 {
-    //////////////////////////////
-    // 1. super init first
-    if ( !Layer::init() )
-    {
-        return false;
-    }
-	nowZ = 1; isUpdating = 0;
-	srand(time(NULL));
-	this->winSize = Director::getInstance()->getWinSize();
+	Layer::onEnter();
 	this->startNodes.clear(); this->allNodes.clear(); this->allEdges.clear();
 	int colorOption = UserDefault::getInstance()->getIntegerForKey("colorOption");
+	bglayer = Layer::create();
+	auto opt = Sprite::create(); auto resume = Sprite::create(); auto out = Sprite::create();
 
-	if (colorOption == 0) bglayer=LayerColor::create(Color4B::BLACK);
-	else bglayer = LayerColor::create(Color4B::WHITE);
+	if (colorOption == 0) {
+		opt->setTexture("menu_white.png");
+		resume->setTexture("resume_white.png");
+		out->setTexture("out_white.png");
+	}
+	else {
+		opt->setTexture("menu_black.png");
+		resume->setTexture("resume_black.png");
+		out->setTexture("out_black.png");
+		bglayer->addChild(Sprite::create("whiteBG.png"));
+	}
 
-	this->addChild(bglayer);
+	opt->setScale(0.25); opt->setOpacity(128 / 2); opt->setTag(TAG_GAME_OPTION);
+	opt->setPosition(winSize.width - 50, winSize.height - 50);
+	resume->setPosition(winSize.width / 2 + 200, winSize.height / 2); resume->setVisible(false);
+	out->setPosition(winSize.width / 2 - 200, winSize.height / 2); out->setVisible(false);
+	resume->setTag(TAG_GAME_OPTION_RESUME); out->setTag(TAG_GAME_OPTION_OUT);
+
+	bglayer->setCascadeOpacityEnabled(true);
+
+	this->addChild(bglayer);	this->addChild(opt);
+	this->addChild(out);	this->addChild(resume);
 
 	loadMapData(colorOption);
-
-	for (int i =0;i<this->allNodes.size(); i++)
+	//this->isUpdating = 0;
+	for (int i = 0; i<this->allNodes.size(); i++)
 	{
 		this->allNodes[i]->spr->setZOrder(MAX_Z_ORDER);
 		bglayer->addChild(this->allNodes[i]->spr);
 		CCLOG("spr pos %f %f", this->allNodes[i]->spr->getPosition().x, this->allNodes[i]->spr->getPosition().y);
+		for (int j = 0; j < this->allNodes[i]->updateCount.size(); j++)this->allNodes[i]->updateCount[j] = 0;
 	}
 	for (int i = 0; i < this->allEdges.size(); i++)
 	{
@@ -61,6 +73,26 @@ bool GameScene::init()
 	touchListener->onTouchBegan = CC_CALLBACK_2(GameScene::onTouchBegan, this);
 	touchListener->onTouchMoved = CC_CALLBACK_2(GameScene::onTouchMoved, this);
 	Director::getInstance()->getEventDispatcher()->addEventListenerWithFixedPriority(touchListener, 1);
+}
+
+void GameScene::onExit()
+{
+	Layer::onExit();
+}
+
+// on "init" you need to initialize your instance
+bool GameScene::init()
+{
+    //////////////////////////////
+    // 1. super init first
+    if ( !Layer::init() )
+    {
+        return false;
+    }
+	nowZ = 1; isUpdating = 0; sceneStatus = 0;
+	srand(time(NULL));
+	this->winSize = Director::getInstance()->getWinSize();
+
 	//log("%s", "A string");
     return true;
 }
@@ -71,26 +103,55 @@ bool GameScene::onTouchBegan(Touch *touch, Event *unused_event)
 	Point loc = touch->getLocation();
 	Point backloc = loc;
 	Rect layerPos = bglayer->getBoundingBox();
-	if (isUpdating == 0)
+	if (sceneStatus == 0)
 	{
-		loc.x -= layerPos.getMinX();
-		for (int i = 0; i < startNodes.size(); i++)
+		auto spr = this->getChildByTag(TAG_GAME_OPTION);
+		Rect optRec = spr->getBoundingBox();
+		//메뉴 버튼을 클릭하면
+		if (optRec.containsPoint(loc))
 		{
-			Rect rect = startNodes[i]->spr->getBoundingBox();
-			if (rect.containsPoint(loc))
+			auto resume = this->getChildByTag(TAG_GAME_OPTION_RESUME); auto out = this->getChildByTag(TAG_GAME_OPTION_OUT);
+			resume->setVisible(true); out->setVisible(true);
+			bglayer->setOpacity(128);
+			sceneStatus = 1; return false;
+		}
+		CCLOG("isUpdating stat : %d", isUpdating);
+		if (isUpdating < 0) isUpdating = 0;
+		if (isUpdating == 0)
+		{
+			loc.x -= layerPos.getMinX();
+			loc.y -= layerPos.getMinY();
+			for (int i = 0; i < startNodes.size(); i++)
 			{
-				isUpdating += 1;
-				startNodes[i]->isTrue = !(startNodes[i]->isTrue);
-				for (int ii = 0; ii < startNodes.size(); ii++) startNodes[ii]->update(NULL, this->nowZ);
-
-				/*int t = -1; startNodes[i]->updateColor(t);
-				if (startNodes[i]->outputEdge. != NULL) {
-					startNodes[i]->outputEdge->updateStatusByInput();
-					startNodes[i]->outputEdge->updateColor(nowZ);
-					//nowZ += startNodes[i]->outputEdge->lines.size();
-				}*/
-				return false;
+				Rect rect = startNodes[i]->spr->getBoundingBox();
+				if (rect.containsPoint(loc))
+				{
+					isUpdating += 1;
+					startNodes[i]->isTrue = !(startNodes[i]->isTrue);
+					for (int ii = 0; ii < startNodes.size(); ii++) startNodes[ii]->update(NULL, this->nowZ);
+					return false;
+				}
 			}
+		}
+	}
+	else
+	{
+		auto resume = this->getChildByTag(TAG_GAME_OPTION_RESUME); auto out = this->getChildByTag(TAG_GAME_OPTION_OUT);
+		if (resume->getBoundingBox().containsPoint(loc) || this->getChildByTag(TAG_GAME_OPTION)->getBoundingBox().containsPoint(loc))
+		{
+			sceneStatus = 0;
+			resume->setVisible(false); out->setVisible(false); bglayer->setOpacity(255);
+			return false;
+		}
+		else if (out->getBoundingBox().containsPoint(loc))
+		{
+			Director::getInstance()->getEventDispatcher()->removeAllEventListeners();
+			Director::getInstance()->popScene();
+			return false;
+		}
+		else
+		{
+			return false;
 		}
 	}
 	pastTouch = backloc;
@@ -103,7 +164,7 @@ void GameScene::onTouchMoved(Touch *touch, Event *unused_event)
 	Point loc = touch->getLocation();
 	
 	//log("%f %f", loc.x, loc.y);
-	bglayer->runAction(MoveBy::create(0.0, Point(loc.x - pastTouch.x, 0.0)));
+	bglayer->runAction(MoveBy::create(0.0, Point(loc.x - pastTouch.x, loc.y - pastTouch.y)));
 	pastTouch = loc;
 }
 

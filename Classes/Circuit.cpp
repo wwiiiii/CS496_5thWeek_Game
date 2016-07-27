@@ -39,6 +39,10 @@ LineSeg::LineSeg(POINT a, POINT b, int colorOption)
 
 	falseLine->setPosition(0, 0);
 	this->nowColor = -1;
+
+	this->clip->setCascadeOpacityEnabled(true);
+	this->trueLine->setCascadeOpacityEnabled(true);
+	this->falseLine->setCascadeOpacityEnabled(true);
 }
 
 CircuitNode::CircuitNode(int type, int isTrue, POINT pos)
@@ -133,13 +137,13 @@ void CircuitNode::updateColor(int & nowZ)
 	switch (this->type)
 	{
 	case NODE_AND:
-		this->spr->setScale(0.5*0.125); break;
-	case NODE_OR:
-		this->spr->setScale(0.5*0.125); break;
-	case NODE_XOR:
-		this->spr->setScale(0.5*0.125); break;
-	default:
 		this->spr->setScale(0.125); break;
+	case NODE_OR:
+		this->spr->setScale(0.125); break;
+	case NODE_XOR:
+		this->spr->setScale(0.125); break;
+	default:
+		this->spr->setScale(0.25); break;
 	}
 	this->nowColor = this->isTrue;
 }
@@ -182,7 +186,11 @@ void CircuitEdge::updateStatusByInput()
 void CircuitEdge::updateColor(int& nowZ)
 {
 	float dur = 0.3;
-	if (this->nowColor == this->isTrue) return;
+	if (this->nowColor == this->isTrue)
+	{
+		updateOutputNode(this, nowZ);
+		return;
+	}
 	this->nowColor = this->isTrue;
 	vector<LineSeg *> & lines = this->lines;
 	auto act = Sequence::create(NULL);
@@ -282,9 +290,11 @@ void CircuitEdge::updateColor(int& nowZ)
 		}
 	}
 	auto delayAct = DelayTime::create(dur);
-	auto callFunc = CallFunc::create(CC_CALLBACK_0(updateOutputNode, this, this, nowZ));
+	CCLOG("callfunc with %p", this);
+	auto callFunc = CallFunc::create(CC_CALLBACK_0(CircuitEdge::updateOutputNode,this, nowZ));
 	auto next = Sequence::create(delayAct, callFunc, NULL);
-	auto temp = Sprite::create(); temp->runAction(next);
+	lines[lines.size() - 1]->clip->runAction(next);
+	//auto temp = Sprite::create(); temp->runAction(next);
 }
 
 /*
@@ -295,8 +305,9 @@ void CircuitEdge::updateColor(int& nowZ)
 pair<Sprite *, int> lineLinearSpr(POINT a, POINT b, int COLOR)
 {
 	float eps = 0.001;
-	float margin = 10.0;
-	float thick = 10.0;
+	float thick = 20.0;
+	float margin = thick;
+
 	if (COLOR < 0 || COLOR > 3) return make_pair((Sprite*)NULL, 0);
 	char str[20]; sprintf(str, "pixel%d.png", COLOR);
 	auto res = Sprite::create(str);
@@ -402,11 +413,12 @@ void CircuitNode::update(CircuitEdge * input, int&nowZ)
 		CCLOG("update Ended");
 		CCLOG("parent %p", (this->spr->getParent()->getParent()));
 		((GameScene*)(this->spr->getParent()->getParent()))->isUpdating -= 1;
+		CCLOG("isupdating renew : %d", ((GameScene*)(this->spr->getParent()->getParent()))->isUpdating);
 	}
 }
 
 
-void updateOutputNode(CircuitEdge* me,int& nowZ)
+void CircuitEdge::updateOutputNode(CircuitEdge* me,int& nowZ)
 {
 	CCLOG("updateOutputNode with %p %d", me, nowZ);
 	me->outputNode->update(me, nowZ);

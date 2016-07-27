@@ -27,7 +27,6 @@ class LineSeg;
 
 vector<LineSeg*> lineSpr(POINT from, POINT to, int);
 pair<Sprite *, int >lineLinearSpr(POINT from, POINT to, int);
-void updateOutputNode(CircuitEdge*, int & nowZ);
 
 class LineSeg
 {
@@ -54,6 +53,7 @@ class CircuitEdge
 		void setOutputNode(CircuitNode *);
 		void updateStatusByInput();
 		void updateColor(int & nowZ);
+		static void updateOutputNode(CircuitEdge*, int & nowZ);
 };
 
 class CircuitNode
