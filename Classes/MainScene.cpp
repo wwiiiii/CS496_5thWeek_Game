@@ -2,7 +2,8 @@
 #include "GameScene.h"
 #include "SettingScene.h"
 #include "RankScene.h"
-#include"SelectScene.h"
+#include "SelectScene.h"
+#include "Circuit.h"
 #include <string>
 
 USING_NS_CC;

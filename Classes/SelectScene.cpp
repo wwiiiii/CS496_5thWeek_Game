@@ -123,7 +123,7 @@ void SelectScene::initShowSelect()
 bool SelectScene::onTouchBegan(Touch *touch, Event *unused_event)
 {
 	Point loc = touch->getLocation();
-	for (int i = 1; i < 12; i++)
+	for (int i = 1; i <= 12; i++)
 	{
 		auto spr = this->getChildByTag(TAG_SELECT + i);
 		Rect rec = spr->getBoundingBox();

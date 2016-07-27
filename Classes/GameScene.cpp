@@ -194,7 +194,10 @@ void GameScene::loadMapData(int colorOption)
 	int mapGaro, mapSero, nodecnt, edgecnt, node1 ,node2;
 	int nodenum, nodetype, nodeval, nodex, nodey;
 	int mapNum = UserDefault::getInstance()->getIntegerForKey("nowStage");
-	mapNum = 1;
+	if (mapNum < 1 || mapNum>12) {
+		mapNum = 1;
+		UserDefault::getInstance()->setIntegerForKey("nowStage",1);
+	}
 	sprintf(mapName, "\\maps\\map%d.txt", mapNum);
 	std::string data = FileUtils::getInstance()->getStringFromFile(mapName);
 	vector<std::string> datas;
