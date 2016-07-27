@@ -248,7 +248,6 @@ void GameScene::winGame()
 	if (color == 0)resume->setTexture("check_white.png");
 	else resume->setTexture("check_white.png");
 	((Sprite*)out)->setTexture("out_white.png");
-	resume->setVisible(true); out->setVisible(true);
 	auto act1 = MoveBy::create(0.0, Point(0, -100));
 	auto act2 = MoveBy::create(0.0, Point(0, -100));
 	out->runAction(act1); resume->runAction(act2);
@@ -258,4 +257,5 @@ void GameScene::winGame()
 	if (color == 0)label->setColor(Color3B::GREEN);
 	else label->setColor(Color3B::GREEN);
 	this->addChild(label);
+	resume->setVisible(true); out->setVisible(true);
 }	
