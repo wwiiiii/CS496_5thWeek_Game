@@ -29,7 +29,7 @@ public:
 	virtual void onExit();
 	virtual bool onTouchBegan(Touch *touch, Event *unused_event);
 	virtual void onTouchMoved(Touch * touch, Event * unused_event);
-
+	void winGame();
 	void loadMapData(int);
 };
 

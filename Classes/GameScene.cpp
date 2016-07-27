@@ -103,7 +103,7 @@ bool GameScene::onTouchBegan(Touch *touch, Event *unused_event)
 	Point loc = touch->getLocation();
 	Point backloc = loc;
 	Rect layerPos = bglayer->getBoundingBox();
-	if (sceneStatus == 0)
+	if (this->sceneStatus == 0)
 	{
 		auto spr = this->getChildByTag(TAG_GAME_OPTION);
 		Rect optRec = spr->getBoundingBox();
@@ -132,6 +132,26 @@ bool GameScene::onTouchBegan(Touch *touch, Event *unused_event)
 					return false;
 				}
 			}
+		}
+	}
+	else if (this->sceneStatus == 2)//winGame!
+	{
+		auto resume = this->getChildByTag(TAG_GAME_OPTION_RESUME); auto out = this->getChildByTag(TAG_GAME_OPTION_OUT);
+		if (resume->getBoundingBox().containsPoint(loc) || this->getChildByTag(TAG_GAME_OPTION)->getBoundingBox().containsPoint(loc))
+		{
+			Director::getInstance()->getEventDispatcher()->removeAllEventListeners();
+			Director::getInstance()->replaceScene(GameScene::createScene());
+			return false;
+		}
+		else if (out->getBoundingBox().containsPoint(loc))
+		{
+			Director::getInstance()->getEventDispatcher()->removeAllEventListeners();
+			Director::getInstance()->popScene();
+			return false;
+		}
+		else
+		{
+			return false;
 		}
 	}
 	else
@@ -173,7 +193,7 @@ void GameScene::loadMapData(int colorOption)
 	char mapName[20];
 	int mapGaro, mapSero, nodecnt, edgecnt, node1 ,node2;
 	int nodenum, nodetype, nodeval, nodex, nodey;
-	int mapNum = UserDefault::getInstance()->getIntegerForKey("nowMapNum");
+	int mapNum = UserDefault::getInstance()->getIntegerForKey("nowStage");
 	mapNum = 1;
 	sprintf(mapName, "\\maps\\map%d.txt", mapNum);
 	std::string data = FileUtils::getInstance()->getStringFromFile(mapName);
@@ -206,3 +226,33 @@ void GameScene::loadMapData(int colorOption)
 		this->allEdges.push_back(newEdge);
 	}
 }
+
+void GameScene::winGame()
+{
+	CCLOG("Win Game!");
+	int color = UserDefault::getInstance()->getIntegerForKey("colorOption");
+	int nowStage = UserDefault::getInstance()->getIntegerForKey("nowStage");
+	int bestStage = UserDefault::getInstance()->getIntegerForKey("bestStage");
+
+	if (nowStage >= bestStage) {
+		bestStage = nowStage;
+		UserDefault::getInstance()->setIntegerForKey("bestStage", nowStage);
+	}
+	UserDefault::getInstance()->setIntegerForKey("nowStage", nowStage+1);
+	this->sceneStatus = 2;
+	auto resume = (Sprite*)this->getChildByTag(TAG_GAME_OPTION_RESUME); auto out = this->getChildByTag(TAG_GAME_OPTION_OUT);
+	bglayer->setOpacity(128/2);
+	if (color == 0)resume->setTexture("check_white.png");
+	else resume->setTexture("check_white.png");
+	((Sprite*)out)->setTexture("out_white.png");
+	resume->setVisible(true); out->setVisible(true);
+	auto act1 = MoveBy::create(0.0, Point(0, -100));
+	auto act2 = MoveBy::create(0.0, Point(0, -100));
+	out->runAction(act1); resume->runAction(act2);
+
+	auto label = Label::createWithTTF("Win!", "NanumGothicExtraBold.ttf", 200, Size(500, 200), TextHAlignment::CENTER, TextVAlignment::CENTER);
+	label->setPosition(winSize.width/2, winSize.height/4*3);
+	if (color == 0)label->setColor(Color3B::GREEN);
+	else label->setColor(Color3B::GREEN);
+	this->addChild(label);
+}	

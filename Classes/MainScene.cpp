@@ -1,6 +1,8 @@
 #include "MainScene.h"
 #include "GameScene.h"
 #include "SettingScene.h"
+#include "RankScene.h"
+#include"SelectScene.h"
 #include <string>
 
 USING_NS_CC;
@@ -98,7 +100,7 @@ bool MainScene::onTouchBegan(Touch *touch, Event *unused_event)
 	if (rect.containsPoint(loc))//touched GAME PLAY
 	{
 		Director::getInstance()->getEventDispatcher()->removeAllEventListeners();
-		Director::getInstance()->pushScene(GameScene::createScene());
+		Director::getInstance()->pushScene(SelectScene::createScene());
 		return false;
 	}
 	
@@ -108,6 +110,15 @@ bool MainScene::onTouchBegan(Touch *touch, Event *unused_event)
 	{
 		Director::getInstance()->getEventDispatcher()->removeAllEventListeners();
 		Director::getInstance()->pushScene(SettingScene::createScene());
+		return false;
+	}
+
+	auto sprRank = (Sprite*)this->getChildByTag(TAG_RANK);
+	rect = sprRank->getBoundingBox();
+	if (rect.containsPoint(loc))//touched OPTION
+	{
+		Director::getInstance()->getEventDispatcher()->removeAllEventListeners();
+		Director::getInstance()->pushScene(RankScene::createScene());
 		return false;
 	}
 

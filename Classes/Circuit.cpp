@@ -412,8 +412,13 @@ void CircuitNode::update(CircuitEdge * input, int&nowZ)
 	{
 		CCLOG("update Ended");
 		CCLOG("parent %p", (this->spr->getParent()->getParent()));
-		((GameScene*)(this->spr->getParent()->getParent()))->isUpdating -= 1;
-		CCLOG("isupdating renew : %d", ((GameScene*)(this->spr->getParent()->getParent()))->isUpdating);
+		GameScene * parent = ((GameScene*)(this->spr->getParent()->getParent()));
+		parent->isUpdating -= 1;
+		CCLOG("isupdating renew : %d", parent->isUpdating);
+		if (this->isTrue == true)
+		{
+			parent->winGame();
+		}
 	}
 }
 
