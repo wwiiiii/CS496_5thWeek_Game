@@ -26,7 +26,7 @@ void GameScene::onEnter()
 	Layer::onEnter();
 	this->startNodes.clear(); this->allNodes.clear(); this->allEdges.clear();
 	int colorOption = UserDefault::getInstance()->getIntegerForKey("colorOption");
-	bglayer = Layer::create();
+	bglayer = Layer::create(); sceneStatus = -1;
 	auto opt = Sprite::create(); auto resume = Sprite::create(); auto out = Sprite::create();
 
 	if (colorOption == 0) {
@@ -46,7 +46,8 @@ void GameScene::onEnter()
 	resume->setPosition(winSize.width / 2 + 200, winSize.height / 2); resume->setVisible(false);
 	out->setPosition(winSize.width / 2 - 200, winSize.height / 2); out->setVisible(false);
 	resume->setTag(TAG_GAME_OPTION_RESUME); out->setTag(TAG_GAME_OPTION_OUT);
-
+	
+	bglayer->runAction(MoveBy::create(0.0, Point(100, 0)));
 	bglayer->setCascadeOpacityEnabled(true);
 
 	this->addChild(bglayer);	this->addChild(opt);
@@ -73,6 +74,14 @@ void GameScene::onEnter()
 	touchListener->onTouchBegan = CC_CALLBACK_2(GameScene::onTouchBegan, this);
 	touchListener->onTouchMoved = CC_CALLBACK_2(GameScene::onTouchMoved, this);
 	Director::getInstance()->getEventDispatcher()->addEventListenerWithFixedPriority(touchListener, 1);
+
+	auto temp = Sprite::create("setting_black.png"); temp->setVisible(false);
+	this->addChild(temp);
+	auto delay = DelayTime::create(1.0);
+	auto func = CallFunc::create(CC_CALLBACK_0(GameScene::loadComplete, this));
+	auto next = Sequence::create(delay, func, NULL);
+	temp->runAction(next);
+
 }
 
 void GameScene::onExit()
@@ -103,7 +112,8 @@ bool GameScene::onTouchBegan(Touch *touch, Event *unused_event)
 	Point loc = touch->getLocation();
 	Point backloc = loc;
 	Rect layerPos = bglayer->getBoundingBox();
-	if (this->sceneStatus == 0)
+	debug();
+	if (this->sceneStatus == 0)//playing game, normal
 	{
 		auto spr = this->getChildByTag(TAG_GAME_OPTION);
 		Rect optRec = spr->getBoundingBox();
@@ -134,6 +144,26 @@ bool GameScene::onTouchBegan(Touch *touch, Event *unused_event)
 			}
 		}
 	}
+	else if(sceneStatus == 1)//메뉴 보고 있을때
+	{
+		auto resume = this->getChildByTag(TAG_GAME_OPTION_RESUME); auto out = this->getChildByTag(TAG_GAME_OPTION_OUT);
+		if (resume->getBoundingBox().containsPoint(loc) || this->getChildByTag(TAG_GAME_OPTION)->getBoundingBox().containsPoint(loc))
+		{
+			sceneStatus = 0;
+			resume->setVisible(false); out->setVisible(false); bglayer->setOpacity(255);
+			return false;
+		}
+		else if (out->getBoundingBox().containsPoint(loc))
+		{
+			Director::getInstance()->getEventDispatcher()->removeAllEventListeners();
+			Director::getInstance()->popScene();
+			return false;
+		}
+		else
+		{
+			return false;
+		}
+	}
 	else if (this->sceneStatus == 2)//winGame!
 	{
 		auto resume = this->getChildByTag(TAG_GAME_OPTION_RESUME); auto out = this->getChildByTag(TAG_GAME_OPTION_OUT);
@@ -154,25 +184,9 @@ bool GameScene::onTouchBegan(Touch *touch, Event *unused_event)
 			return false;
 		}
 	}
-	else
+	else if (sceneStatus == -1)//blocking
 	{
-		auto resume = this->getChildByTag(TAG_GAME_OPTION_RESUME); auto out = this->getChildByTag(TAG_GAME_OPTION_OUT);
-		if (resume->getBoundingBox().containsPoint(loc) || this->getChildByTag(TAG_GAME_OPTION)->getBoundingBox().containsPoint(loc))
-		{
-			sceneStatus = 0;
-			resume->setVisible(false); out->setVisible(false); bglayer->setOpacity(255);
-			return false;
-		}
-		else if (out->getBoundingBox().containsPoint(loc))
-		{
-			Director::getInstance()->getEventDispatcher()->removeAllEventListeners();
-			Director::getInstance()->popScene();
-			return false;
-		}
-		else
-		{
-			return false;
-		}
+		return false;
 	}
 	pastTouch = backloc;
 	return true;
@@ -218,6 +232,7 @@ void GameScene::loadMapData(int colorOption)
 		CCLOG("%s to %d %d %d %d %d\n", datas[2 + i].c_str(), nodenum, nodetype, nodeval, nodex, nodey);
 		if (nodex < 0) nodex += mapGaro; if (nodey < 0) nodey += mapSero;
 		auto newNode = new CircuitNode(nodetype, nodeval, { nodex, nodey });
+		newNode->num = i;
 		this->allNodes.push_back(newNode);
 		if (nodetype == NODE_START) this->startNodes.push_back(newNode);
 	}
@@ -259,3 +274,38 @@ void GameScene::winGame()
 	this->addChild(label);
 	resume->setVisible(true); out->setVisible(true);
 }	
+
+void GameScene::loadComplete()
+{
+	for (int i = 0; i < allNodes.size(); i++)
+	{
+		for (int j = 0; j < allNodes[i]->updateCount.size(); j++)
+		{
+			allNodes[i]->updateCount[j] = 0;
+		}
+	}
+	isUpdating = 1;
+	for (int ii = 0; ii < startNodes.size(); ii++) startNodes[ii]->update(NULL, this->nowZ);
+	sceneStatus = 0;
+}
+
+void GameScene::debug()
+{
+	for (int i = 0; i < allNodes.size(); i++)
+	{
+		auto now = allNodes[i];
+		CCLOG("node%d : isTrue %d nowColor %d",allNodes[i]->num, allNodes[i]->isTrue, allNodes[i]->nowColor);
+		std::string a = ""; char str[20];
+		for (int j = 0; j < now->updateCount.size(); j++)
+		{
+			sprintf(str, "%d", now->updateCount[j]);
+			a += std::string(str) + std::string(" ");
+		}
+		CCLOG(a.c_str());
+	}
+	for (int i = 0; i < allEdges.size(); i++)
+	{
+		auto now = allEdges[i];
+		CCLOG("edge %d to %d : isTrue %d nowColor %d",now->inputNode->num, now->outputNode->num, now->isTrue, now->nowColor);
+	}
+}

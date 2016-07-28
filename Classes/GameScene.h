@@ -31,6 +31,8 @@ public:
 	virtual void onTouchMoved(Touch * touch, Event * unused_event);
 	void winGame();
 	void loadMapData(int);
+	void loadComplete();
+	void debug();
 };
 
 #endif // __Game_SCENE_H__

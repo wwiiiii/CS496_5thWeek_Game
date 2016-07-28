@@ -64,7 +64,7 @@ class CircuitNode
 		vector<CircuitEdge*> outputEdges;
 		vector<int> updateCount;
 		POINT pos;
-		int isTrue, type, nowColor;
+		int isTrue, type, nowColor, num;
 		CircuitNode(int type, int isTrue, POINT pos);
 		void addInputEdge(CircuitEdge *);
 		void addOutputEdge(CircuitEdge *);

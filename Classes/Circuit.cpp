@@ -385,6 +385,7 @@ vector<LineSeg*> lineSpr(POINT a, POINT b, int colorOption)
 
 void CircuitNode::update(CircuitEdge * input, int&nowZ)
 {
+	CCLOG("%d node update called", this->num);
 	if (this->type != NODE_START)//same as input != NULL
 	{
 		for (int i = 0; i < inputEdges.size(); i++)
@@ -401,6 +402,7 @@ void CircuitNode::update(CircuitEdge * input, int&nowZ)
 		}
 		for (int i = 0; i < updateCount.size(); i++) updateCount[i] -= 1;
 	}
+	CCLOG("%d node update really started", this->num);
 	this->updateStatusByInput();
 	int t = -1; this->updateColor(t);
 	for (int i = 0; i < outputEdges.size(); i++)
@@ -425,6 +427,6 @@ void CircuitNode::update(CircuitEdge * input, int&nowZ)
 
 void CircuitEdge::updateOutputNode(CircuitEdge* me,int& nowZ)
 {
-	CCLOG("updateOutputNode with %p %d", me, nowZ);
+	CCLOG("call update %d -> %d", me->inputNode->num, me->outputNode->num);
 	me->outputNode->update(me, nowZ);
 }

@@ -122,8 +122,10 @@ void SelectScene::initShowSelect()
 
 bool SelectScene::onTouchBegan(Touch *touch, Event *unused_event)
 {
+	int bestStage = UserDefault::getInstance()->getIntegerForKey("bestStage");
 	Point loc = touch->getLocation();
-	for (int i = 1; i <= 12; i++)
+	int last = bestStage + 1; if (last > 12) last = 12;
+	for (int i = 1; i <= last; i++)
 	{
 		auto spr = this->getChildByTag(TAG_SELECT + i);
 		Rect rec = spr->getBoundingBox();
